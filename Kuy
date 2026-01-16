@@ -1,0 +1,208 @@
+-- RachaTono👑 GOD PANEL (ONE SCRIPT)
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+-- ====== สถานะ ======
+local flyEnabled = false
+local godEnabled = false
+local flying = false
+local flySpeed = 60
+local guiVisible = true
+local minimized = false
+
+local bv, bg
+
+-- ====== ฟังก์ชันบิน ======
+local function startFly()
+	local char = player.Character
+	if not char then return end
+
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local hum = char:WaitForChild("Humanoid")
+	hum.PlatformStand = true
+
+	bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+	bv.Parent = hrp
+
+	bg = Instance.new("BodyGyro")
+	bg.MaxTorque = Vector3.new(1e5,1e5,1e5)
+	bg.Parent = hrp
+
+	flying = true
+end
+
+local function stopFly()
+	local char = player.Character
+	if not char then return end
+
+	local hum = char:FindFirstChild("Humanoid")
+	if hum then hum.PlatformStand = false end
+
+	if bv then bv:Destroy() bv = nil end
+	if bg then bg:Destroy() bg = nil end
+
+	flying = false
+end
+
+-- ====== ควบคุมบิน ======
+RunService.RenderStepped:Connect(function()
+	if not flying or not bv or not bg then return end
+
+	local cam = workspace.CurrentCamera
+	local dir = Vector3.zero
+
+	if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+	if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+	if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+	if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+	if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+	if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
+
+	bv.Velocity = dir * flySpeed
+	bg.CFrame = cam.CFrame
+end)
+
+-- ====== ฟังก์ชันอมตะ ======
+local function setGod(state)
+	local char = player.Character
+	if not char then return end
+	local hum = char:FindFirstChild("Humanoid")
+	if not hum then return end
+
+	if state then
+		hum.MaxHealth = math.huge
+		hum.Health = hum.MaxHealth
+	else
+		hum.MaxHealth = 100
+		hum.Health = 100
+	end
+end
+
+-- ====== ฟังก์ชันสร้างชื่อ GUI ======
+local function createTitle(parent)
+	local title = Instance.new("TextLabel")
+	title.Parent = parent
+	title.Size = UDim2.new(1,-80,1,0)
+	title.Position = UDim2.new(0,10,0,0)
+	title.BackgroundTransparency = 1
+	title.Text = "RachaTono👑"
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 20
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextColor3 = Color3.fromRGB(255,215,0)
+	return title
+end
+
+-- ====== GUI ======
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.ResetOnSpawn = false
+
+-- ปุ่มเปิด/ปิด GUI (ลอย)
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0,50,0,50)
+toggleBtn.Position = UDim2.new(0,20,0.5,-25)
+toggleBtn.Text = "👑"
+toggleBtn.TextScaled = true
+toggleBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+toggleBtn.BorderSizePixel = 0
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1,0)
+
+-- หน้าต่างหลัก
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,300,0,180)
+frame.Position = UDim2.new(0.5,-150,0.2,0)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,18)
+
+-- แถบหัว
+local top = Instance.new("Frame", frame)
+top.Size = UDim2.new(1,0,0,40)
+top.BackgroundTransparency = 1
+
+-- ชื่อจากฟังก์ชัน
+local title = createTitle(top)
+
+-- ปุ่มพับ
+local minBtn = Instance.new("TextButton", top)
+minBtn.Size = UDim2.new(0,30,0,30)
+minBtn.Position = UDim2.new(1,-40,0.5,-15)
+minBtn.Text = "—"
+minBtn.TextScaled = true
+minBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+minBtn.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", minBtn)
+
+-- เนื้อหา
+local content = Instance.new("Frame", frame)
+content.Size = UDim2.new(1,0,1,-40)
+content.Position = UDim2.new(0,0,0,40)
+content.BackgroundTransparency = 1
+
+-- ปุ่มบิน
+local flyBtn = Instance.new("TextButton", content)
+flyBtn.Size = UDim2.new(0.8,0,0,45)
+flyBtn.Position = UDim2.new(0.1,0,0.1,0)
+flyBtn.Text = "บิน : ปิด"
+flyBtn.TextScaled = true
+flyBtn.BackgroundColor3 = Color3.fromRGB(120,30,30)
+flyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", flyBtn)
+
+flyBtn.MouseButton1Click:Connect(function()
+	flyEnabled = not flyEnabled
+	if flyEnabled then
+		startFly()
+		flyBtn.Text = "บิน : เปิด 🕊️"
+		flyBtn.BackgroundColor3 = Color3.fromRGB(30,120,30)
+	else
+		stopFly()
+		flyBtn.Text = "บิน : ปิด"
+		flyBtn.BackgroundColor3 = Color3.fromRGB(120,30,30)
+	end
+end)
+
+-- ปุ่มอมตะ
+local godBtn = Instance.new("TextButton", content)
+godBtn.Size = UDim2.new(0.8,0,0,45)
+godBtn.Position = UDim2.new(0.1,0,0.45,0)
+godBtn.Text = "อมตะ : ปิด"
+godBtn.TextScaled = true
+godBtn.BackgroundColor3 = Color3.fromRGB(120,30,30)
+godBtn.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", godBtn)
+
+godBtn.MouseButton1Click:Connect(function()
+	godEnabled = not godEnabled
+	setGod(godEnabled)
+
+	if godEnabled then
+		godBtn.Text = "อมตะ : เปิด 🛡️"
+		godBtn.BackgroundColor3 = Color3.fromRGB(30,120,30)
+	else
+		godBtn.Text = "อมตะ : ปิด"
+		godBtn.BackgroundColor3 = Color3.fromRGB(120,30,30)
+	end
+end)
+
+-- เปิด/ปิดหน้าต่าง
+toggleBtn.MouseButton1Click:Connect(function()
+	guiVisible = not guiVisible
+	frame.Visible = guiVisible
+end)
+
+-- พับ/ขยาย
+minBtn.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	content.Visible = not minimized
+	frame.Size = minimized and UDim2.new(0,300,0,40) or UDim2.new(0,300,0,180)
+	minBtn.Text = minimized and "+" or "—"
+end)
