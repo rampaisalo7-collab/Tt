@@ -1,0 +1,171 @@
+--==================================================
+-- Rivals 👑 ( By tono )
+--==================================================
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+--==============================
+-- ScreenGui
+--==============================
+local gui = Instance.new("ScreenGui")
+gui.Name = "RivalsGUI"
+gui.Parent = player:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+
+--==============================
+-- Floating Icon
+--==============================
+local icon = Instance.new("ImageButton", gui)
+icon.Size = UDim2.new(0,70,0,70)
+icon.Position = UDim2.new(0.1,0,0.4,0)
+icon.BackgroundTransparency = 1
+icon.Image = "rbxassetid://IMAGE_ID_HERE" -- ใส่รูปมึง
+icon.Active = true
+icon.Draggable = true
+Instance.new("UICorner", icon).CornerRadius = UDim.new(1,0)
+
+--==============================
+-- Main Frame
+--==============================
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,300,0,260)
+frame.Position = UDim2.new(0.5,-150,0.5,-130)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BorderSizePixel = 0
+frame.Visible = false
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,18)
+
+icon.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+
+--==============================
+-- Title
+--==============================
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,50)
+title.BackgroundTransparency = 1
+title.Text = "Rivals 👑\n(By tono)"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.new(1,1,1)
+title.TextWrapped = true
+
+--==============================
+-- Helper: Toggle
+--==============================
+local function createToggle(text, yPos, callback)
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(0.6,0,0,30)
+	label.Position = UDim2.new(0.08,0,0,yPos)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 14
+	label.TextXAlignment = Left
+	label.TextColor3 = Color3.new(1,1,1)
+
+	local bg = Instance.new("Frame", frame)
+	bg.Size = UDim2.new(0,55,0,26)
+	bg.Position = UDim2.new(0.78,-55,0,yPos+2)
+	bg.BackgroundColor3 = Color3.fromRGB(70,70,70)
+	bg.BorderSizePixel = 0
+	Instance.new("UICorner", bg).CornerRadius = UDim.new(1,0)
+
+	local knob = Instance.new("Frame", bg)
+	knob.Size = UDim2.new(0,22,0,22)
+	knob.Position = UDim2.new(0,2,0,2)
+	knob.BackgroundColor3 = Color3.new(1,1,1)
+	knob.BorderSizePixel = 0
+	Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
+
+	local state = false
+	bg.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
+			state = not state
+			if state then
+				bg.BackgroundColor3 = Color3.fromRGB(0,170,255)
+				TweenService:Create(knob, TweenInfo.new(.2), {
+					Position = UDim2.new(1,-24,0,2)
+				}):Play()
+			else
+				bg.BackgroundColor3 = Color3.fromRGB(70,70,70)
+				TweenService:Create(knob, TweenInfo.new(.2), {
+					Position = UDim2.new(0,2,0,2)
+				}):Play()
+			end
+			if callback then callback(state) end
+		end
+	end)
+end
+
+--==============================
+-- Helper: Slider (0–360)
+--==============================
+local function createSlider(text, yPos, min, max, callback)
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(1,-20,0,24)
+	label.Position = UDim2.new(0,10,0,yPos)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 14
+	label.TextColor3 = Color3.new(1,1,1)
+
+	local bar = Instance.new("Frame", frame)
+	bar.Size = UDim2.new(1,-40,0,10)
+	bar.Position = UDim2.new(0,20,0,yPos+26)
+	bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	bar.BorderSizePixel = 0
+	Instance.new("UICorner", bar).CornerRadius = UDim.new(1,0)
+
+	local fill = Instance.new("Frame", bar)
+	fill.Size = UDim2.new(0,0,1,0)
+	fill.BackgroundColor3 = Color3.fromRGB(0,170,255)
+	fill.BorderSizePixel = 0
+	Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
+
+	local dragging = false
+	bar.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+	end)
+	bar.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+	end)
+
+	UserInputService.InputChanged:Connect(function(i)
+		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+			local pct = math.clamp(
+				(i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1
+			)
+			fill.Size = UDim2.new(pct,0,1,0)
+			local value = math.floor(min + (max-min)*pct)
+			if callback then callback(value) end
+		end
+	end)
+end
+
+--==============================
+-- Toggles / Slider (Hooks)
+--==============================
+createToggle("Aim System (Training)", 60, function(v)
+	print("Aim:", v) -- ใส่ logic เกมมึงเอง
+end)
+
+createToggle("Visual ESP (Training)", 100, function(v)
+	print("ESP:", v)
+end)
+
+createToggle("Homing Projectile", 140, function(v)
+	print("Homing:", v)
+end)
+
+createSlider("FOV Size (0–360)", 180, 0, 360, function(v)
+	print("FOV:", v)
+end)
