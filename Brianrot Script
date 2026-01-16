@@ -1,0 +1,241 @@
+-- RachaTono👑 GOD PANEL (ONE SCRIPT - GOD FIX + FLY SPEED 1-5 + MOBILE)
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local isMobile = UIS.TouchEnabled
+
+-- ====== สถานะ ======
+local flyEnabled = false
+local godEnabled = false
+local flying = false
+local guiVisible = true
+local minimized = false
+
+-- ====== มือถือ ======
+local mobileUp = false
+local mobileDown = false
+
+-- ====== Fly Speed Levels ======
+local flyLevels = {
+	[1] = 40,
+	[2] = 60,
+	[3] = 80,
+	[4] = 110,
+	[5] = 150
+}
+local flyLevel = 2
+local flySpeed = flyLevels[flyLevel]
+
+local bv, bg
+local godConnection, stateConnection
+
+-- ====== ฟังก์ชันบิน ======
+local function startFly()
+	local char = player.Character
+	if not char then return end
+
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local hum = char:WaitForChild("Humanoid")
+	hum.PlatformStand = true
+
+	bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+	bv.Parent = hrp
+
+	bg = Instance.new("BodyGyro")
+	bg.MaxTorque = Vector3.new(1e5,1e5,1e5)
+	bg.Parent = hrp
+
+	flying = true
+end
+
+local function stopFly()
+	local char = player.Character
+	if not char then return end
+	local hum = char:FindFirstChild("Humanoid")
+	if hum then hum.PlatformStand = false end
+	if bv then bv:Destroy() bv = nil end
+	if bg then bg:Destroy() bg = nil end
+	flying = false
+end
+
+-- ====== คุมทิศบิน (PC + MOBILE) ======
+RunService.RenderStepped:Connect(function()
+	if not flying or not bv or not bg then return end
+
+	local cam = workspace.CurrentCamera
+	local dir = Vector3.zero
+
+	if isMobile then
+		-- มือถือ: บินตามกล้อง
+		dir = cam.CFrame.LookVector
+		if mobileUp then dir += Vector3.new(0,1,0) end
+		if mobileDown then dir -= Vector3.new(0,1,0) end
+	else
+		if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+		if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+		if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+		if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
+	end
+
+	bv.Velocity = dir * flySpeed
+	bg.CFrame = cam.CFrame
+end)
+
+-- ====== GOD MODE ======
+local function setGod(state)
+	local char = player.Character
+	if not char then return end
+	local hum = char:WaitForChild("Humanoid")
+
+	if state then
+		hum.MaxHealth = math.huge
+		hum.Health = hum.MaxHealth
+
+		if godConnection then godConnection:Disconnect() end
+		godConnection = hum.HealthChanged:Connect(function()
+			hum.Health = hum.MaxHealth
+		end)
+
+		if stateConnection then stateConnection:Disconnect() end
+		stateConnection = hum.StateChanged:Connect(function(_, new)
+			if new == Enum.HumanoidStateType.Dead then
+				hum:ChangeState(Enum.HumanoidStateType.Physics)
+			end
+		end)
+	else
+		if godConnection then godConnection:Disconnect() godConnection = nil end
+		if stateConnection then stateConnection:Disconnect() stateConnection = nil end
+		hum.MaxHealth = 100
+		hum.Health = 100
+	end
+end
+
+-- ====== เกิดใหม่แล้วยังโกง ======
+player.CharacterAdded:Connect(function()
+	task.wait(0.5)
+	if godEnabled then setGod(true) end
+	if flyEnabled then startFly() end
+end)
+
+-- ====== GUI ======
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.ResetOnSpawn = false
+
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0,50,0,50)
+toggleBtn.Position = UDim2.new(0,20,0.5,-25)
+toggleBtn.Text = "👑"
+toggleBtn.TextScaled = true
+toggleBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1,0)
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,300,0,230)
+frame.Position = UDim2.new(0.5,-150,0.2,0)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame)
+
+local content = Instance.new("Frame", frame)
+content.Size = UDim2.new(1,0,1,0)
+content.BackgroundTransparency = 1
+
+-- ====== ปุ่มบิน ======
+local flyBtn = Instance.new("TextButton", content)
+flyBtn.Size = UDim2.new(0.8,0,0,45)
+flyBtn.Position = UDim2.new(0.1,0,0.05,0)
+flyBtn.Text = "บิน : ปิด"
+flyBtn.TextScaled = true
+flyBtn.BackgroundColor3 = Color3.fromRGB(120,30,30)
+flyBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", flyBtn)
+
+flyBtn.MouseButton1Click:Connect(function()
+	flyEnabled = not flyEnabled
+	if flyEnabled then
+		startFly()
+		flyBtn.Text = "บิน : เปิด"
+		flyBtn.BackgroundColor3 = Color3.fromRGB(30,120,30)
+	else
+		stopFly()
+		flyBtn.Text = "บิน : ปิด"
+		flyBtn.BackgroundColor3 = Color3.fromRGB(120,30,30)
+	end
+end)
+
+-- ====== ปุ่มอมตะ ======
+local godBtn = Instance.new("TextButton", content)
+godBtn.Size = UDim2.new(0.8,0,0,45)
+godBtn.Position = UDim2.new(0.1,0,0.3,0)
+godBtn.Text = "อมตะ : ปิด"
+godBtn.TextScaled = true
+godBtn.BackgroundColor3 = Color3.fromRGB(120,30,30)
+godBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", godBtn)
+
+godBtn.MouseButton1Click:Connect(function()
+	godEnabled = not godEnabled
+	setGod(godEnabled)
+	godBtn.Text = godEnabled and "อมตะ : เปิด" or "อมตะ : ปิด"
+	godBtn.BackgroundColor3 = godEnabled and Color3.fromRGB(30,120,30) or Color3.fromRGB(120,30,30)
+end)
+
+-- ====== ปรับความเร็วบิน ======
+for i = 1,5 do
+	local btn = Instance.new("TextButton", content)
+	btn.Size = UDim2.new(0.14,0,0,30)
+	btn.Position = UDim2.new(0.1 + (i-1)*0.15,0,0.6,0)
+	btn.Text = tostring(i)
+	btn.TextScaled = true
+	btn.BackgroundColor3 = (i == flyLevel) and Color3.fromRGB(30,120,30) or Color3.fromRGB(60,60,60)
+	btn.TextColor3 = Color3.new(1,1,1)
+	Instance.new("UICorner", btn)
+
+	btn.MouseButton1Click:Connect(function()
+		flyLevel = i
+		flySpeed = flyLevels[i]
+		for _,b in ipairs(content:GetChildren()) do
+			if b:IsA("TextButton") and tonumber(b.Text) then
+				b.BackgroundColor3 =
+					(tonumber(b.Text) == flyLevel)
+					and Color3.fromRGB(30,120,30)
+					or Color3.fromRGB(60,60,60)
+			end
+		end
+	end)
+end
+
+-- ====== ปุ่มมือถือ ขึ้น / ลง ======
+if isMobile then
+	local upBtn = Instance.new("TextButton", gui)
+	upBtn.Size = UDim2.new(0,60,0,60)
+	upBtn.Position = UDim2.new(1,-80,1,-160)
+	upBtn.Text = "⬆️"
+	upBtn.TextScaled = true
+	upBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	upBtn.TextColor3 = Color3.new(1,1,1)
+	Instance.new("UICorner", upBtn)
+
+	upBtn.TouchStarted:Connect(function() mobileUp = true end)
+	upBtn.TouchEnded:Connect(function() mobileUp = false end)
+
+	local downBtn = Instance.new("TextButton", gui)
+	downBtn.Size = UDim2.new(0,60,0,60)
+	downBtn.Position = UDim2.new(1,-80,1,-90)
+	downBtn.Text = "⬇️"
+	downBtn.TextScaled = true
+	downBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	downBtn.TextColor3 = Color3.new(1,1,1)
+	Instance.new("UICorner", downBtn)
+
+	downBtn.TouchStarted:Connect(function() mobileDown = true end)
+	downBtn.TouchEnded:Connect(function() mobileDown = false end)
+end
