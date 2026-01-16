@@ -1,0 +1,155 @@
+-- Aim By tono (Mobile + PC)
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local head = character:WaitForChild("Head")
+
+--================ UI =================
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "aimUI"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,300,0,220)
+main.Position = UDim2.new(0.5,-150,0.5,-110)
+main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,20)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,35)
+title.BackgroundTransparency = 1
+title.Text = "🎯 aim"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0,200,255)
+
+-- Toggle
+local toggle = Instance.new("TextButton", main)
+toggle.Size = UDim2.new(0.7,0,0,40)
+toggle.Position = UDim2.new(0.15,0,0,45)
+toggle.Text = "OFF"
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 18
+toggle.BackgroundColor3 = Color3.fromRGB(60,60,60)
+toggle.TextColor3 = Color3.fromRGB(255,80,80)
+Instance.new("UICorner", toggle)
+
+--================ FOV SLIDER (Mobile + PC) =================
+local bar = Instance.new("Frame", main)
+bar.Position = UDim2.new(0.1,0,0,100)
+bar.Size = UDim2.new(0.8,0,0,8)
+bar.BackgroundColor3 = Color3.fromRGB(80,80,80)
+Instance.new("UICorner", bar)
+
+local fill = Instance.new("Frame", bar)
+fill.Size = UDim2.new(0,0,1,0)
+fill.BackgroundColor3 = Color3.fromRGB(0,200,255)
+Instance.new("UICorner", fill)
+
+local fovText = Instance.new("TextLabel", main)
+fovText.Position = UDim2.new(0,0,0,115)
+fovText.Size = UDim2.new(1,0,0,20)
+fovText.BackgroundTransparency = 1
+fovText.Font = Enum.Font.Gotham
+fovText.TextSize = 14
+fovText.TextColor3 = Color3.new(1,1,1)
+fovText.Text = "FOV : 0"
+
+local dragging = false
+local FOV = 0
+
+local function updateBar(input)
+	local x = math.clamp(
+		(input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X,
+		0, 1
+	)
+	fill.Size = UDim2.new(x,0,1,0)
+	FOV = math.floor(x * 360)
+	fovText.Text = "FOV : "..FOV
+end
+
+bar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		updateBar(input)
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if dragging and (
+		input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	) then
+		updateBar(input)
+	end
+end)
+
+--================ HEALTH CIRCLE (ANIM) =================
+local circle = Instance.new("ImageLabel", main)
+circle.Size = UDim2.new(0,80,0,80)
+circle.Position = UDim2.new(0.35,0,0,140)
+circle.BackgroundTransparency = 1
+circle.Image = "rbxassetid://3570695787"
+circle.ImageColor3 = Color3.fromRGB(255,0,0)
+
+--================ HOMING BULLET =================
+local enabled = false
+local shootConn
+
+local function shoot()
+	if shootConn then shootConn:Disconnect() end
+
+	local cam = workspace.CurrentCamera
+	local bullet = Instance.new("Part", workspace)
+	bullet.Size = Vector3.new(0.3,0.3,0.3)
+	bullet.Shape = Enum.PartType.Ball
+	bullet.Material = Enum.Material.Neon
+	bullet.Color = Color3.fromRGB(255,80,80)
+	bullet.Anchored = true
+	bullet.CanCollide = false
+	bullet.Position = cam.CFrame.Position
+
+	local SPEED = 120
+
+	shootConn = RunService.Heartbeat:Connect(function(dt)
+		if not enabled or not bullet or not head then
+			if bullet then bullet:Destroy() end
+			shootConn:Disconnect()
+			return
+		end
+
+		local dir = (head.Position - bullet.Position).Unit
+		bullet.Position += dir * SPEED * dt
+
+		circle.ImageTransparency = math.abs(math.sin(tick()))
+	end)
+end
+
+--================ TOGGLE =================
+toggle.MouseButton1Click:Connect(function()
+	enabled = not enabled
+	if enabled then
+		toggle.Text = "ON"
+		toggle.TextColor3 = Color3.fromRGB(80,255,120)
+		toggle.BackgroundColor3 = Color3.fromRGB(40,80,50)
+		shoot()
+	else
+		toggle.Text = "OFF"
+		toggle.TextColor3 = Color3.fromRGB(255,80,80)
+		toggle.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	end
+end)
